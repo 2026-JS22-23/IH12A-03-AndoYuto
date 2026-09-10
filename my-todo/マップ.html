@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Simple Marker</title>
+    <!-- The callback parameter is required, so we use console.debug as a noop -->
+    
+    <!-- jQuery UI CSS 必須 -->
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
+
+    <!-- jQuery 必須 -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <!-- jQuery UI 必須 -->
+    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+
+    <!-- three.js -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+    <!-- 3Dピン専用ファイル -->
+    <script src="./js/threePinMarker.js"></script>
+
+  <style>
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      font-family: "Yu Gothic", "Meiryo", sans-serif;
+      background: #f4f7f8;
+    }
+
+    #map {
+      height: 100%;
+      width: 100%;
+    }
+
+    .side-panel {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      z-index: 10;
+      width: 330px;
+      max-height: calc(100vh - 32px);
+      overflow-y: auto;
+      background: rgba(255, 255, 255, 0.96);
+      border-radius: 16px;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+      padding: 16px;
+      box-sizing: border-box;
+    }
+
+    .side-panel h1 {
+      font-size: 20px;
+      margin: 0 0 6px;
+      color: #1d3557;
+    }
+
+    .side-panel .subtitle {
+      font-size: 13px;
+      color: #555;
+      margin-bottom: 14px;
+      line-height: 1.5;
+    }
+
+    .search-box {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .search-box input {
+      flex: 1;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    .search-box button {
+      padding: 8px 10px;
+      border: none;
+      border-radius: 8px;
+      background: #1d3557;
+      color: white;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .search-box button:hover {
+      background: #284b7a;
+    }
+
+    .spot-card {
+      display: flex;
+      gap: 10px;
+      padding: 10px;
+      margin-bottom: 10px;
+      background: #ffffff;
+      border-radius: 12px;
+      border: 1px solid #e0e0e0;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .spot-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.16);
+      border-color: #457b9d;
+    }
+
+    .spot-card img {
+      width: 86px;
+      height: 70px;
+      object-fit: cover;
+      border-radius: 10px;
+      background: #ddd;
+    }
+
+    .spot-card h2 {
+      font-size: 15px;
+      margin: 0 0 4px;
+      color: #222;
+    }
+
+    .spot-card p {
+      font-size: 12px;
+      margin: 0;
+      color: #555;
+      line-height: 1.4;
+    }
+
+    .category-label {
+      display: inline-block;
+      font-size: 11px;
+      background: #e8f3ff;
+      color: #1d5f99;
+      padding: 3px 7px;
+      border-radius: 999px;
+      margin-top: 6px;
+    }
+
+    .three-marker {
+      width: 0;
+      height: 0;
+      position: relative;
+      display: block;
+      pointer-events: auto;
+      cursor: pointer;
+      transform: translate(-50%, -100%);
+      transform-origin: left bottom;
+    }
+
+    .three-marker canvas {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 70px !important;
+      height: 90px !important;
+      display: block;
+      pointer-events: none;
+    }
+
+    .spot-dialog {
+      display: none;
+    }
+
+    .dialog-content {
+      line-height: 1.7;
+    }
+
+    .dialog-main-img {
+      width: 100%;
+      max-height: 230px;
+      object-fit: cover;
+      border-radius: 12px;
+      margin-bottom: 12px;
+    }
+
+    .dialog-section {
+      margin-bottom: 12px;
+      padding: 10px;
+      background: #f8fafc;
+      border-left: 5px solid #457b9d;
+      border-radius: 8px;
+    }
+
+    .dialog-section h3 {
+      font-size: 15px;
+      margin: 0 0 5px;
+      color: #1d3557;
+    }
+
+    .dialog-section p {
+      margin: 0;
+      font-size: 14px;
+    }
+
+    .dialog-buttons {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .dialog-buttons button {
+      padding: 8px 12px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .official-btn {
+      background: #1d3557;
+      color: white;
+    }
+
+    .cm-btn {
+      background: #e63946;
+      color: white;
+    }
+
+    .reset-btn {
+      position: absolute;
+      right: 16px;
+      bottom: 16px;
+      z-index: 10;
+      padding: 10px 14px;
+      border: none;
+      border-radius: 10px;
+      background: #ffffff;
+      box-shadow: 0 3px 12px rgba(0, 0, 0, 0.25);
+      cursor: pointer;
+      font-weight: bold;
+      color: #1d3557;
+    }
+
+    .reset-btn:hover {
+      background: #f0f6ff;
+    }
+
+    @media screen and (max-width: 700px) {
+      .side-panel {
+        width: calc(100% - 32px);
+        max-height: 45vh;
+      }
+
+      .reset-btn {
+        bottom: 12px;
+        right: 12px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="side-panel">
+    <h1>地元の観光名所紹介</h1>
+    <p class="subtitle">
+      Google Maps API と Three.js を使って、観光スポットを3Dピンで表示します。
+      サムネイルをクリックすると地図が移動し、詳しい情報を表示します。
+    </p>
+
+    <div id="spotList"></div>
+  </div>
+
+  <div id="map"></div>
+
+  <button class="reset-btn" onclick="resetMap()">全体表示に戻す</button>
+
+  <div id="spotDialog" class="spot-dialog" title="観光スポット情報"></div>
+
+  <script>
+    let map;
+    let infoDialog;
+    const markers = [];
+
+    const defaultCenter = {
+      lat: 35.168120219014064,
+      lng: 136.88551407783842
+    };
+
+    const locations = [
+      {
+        id: "hal",
+        name: "モード学園スパイラルタワーズ",
+        category: "学校・建築",
+        lat: 35.168120219014064,
+        lng: 136.88551407783842,
+        image: "./images/hal.png",
+        link: "https://www.hal.ac.jp/nagoya",
+        cm: "https://youtu.be/I4FwmOuEOHE?si=fV8QEb3_ePG5oqek",
+        shortText: "名古屋駅近くにある特徴的な超高層ビルです。",
+        overview: "モード学園スパイラルタワーズは、地上36階、地下3階のおよそ170mにもなるらせん状のデザインが印象的で、街の中でも目を引く存在です。",
+        highlight: "螺旋状のデザインは、｢時代の最先端を行くエネルギーをもつ学生が､切磋琢磨し絡み合いながら上昇して､社会へ羽ばたいていく様｣を表現しているそうです。",
+        recommend: "建築に興味がある人や、名古屋駅周辺を散策する人におすすめです。写真映えするスポットとしても使いやすいです。"
+      },
+      {
+        id: "ise",
+        name: "伊勢神宮",
+        category: "歴史・神社",
+        lat: 34.454980286274825,
+        lng: 136.7252923848049,
+        image: "./images/ise.jpg",
+        link: "https://www.isejingu.or.jp/",
+        shortText: "三重県を代表する歴史ある神社です。",
+        overview: "伊勢神宮は、三重県伊勢市にある日本を代表する神社です。古くから多くの人々が参拝に訪れる場所で、厳かな雰囲気と自然に囲まれた参道が魅力です。",
+        highlight: "内宮、外宮、宇治橋、神宮の森など、歴史と自然を同時に感じられる点が見どころです。",
+        recommend: "落ち着いた雰囲気で観光したい人や、日本の伝統文化に触れたい人におすすめです。周辺のおはらい町散策も楽しめます。"
+      },
+      {
+        id: "taki",
+        name: "赤目四十八滝",
+        category: "自然・滝",
+        lat: 34.65165122849977,
+        lng: 136.10034103881125,
+        image: "./images/taki.jpg",
+        link: "https://www.akame48taki.com/about/",
+        shortText: "滝と渓谷の自然を楽しめる癒やしスポットです。",
+        overview: "赤目四十八滝は、三重県名張市にある渓谷の観光地です。大小さまざまな滝が続き、自然の音や緑に包まれながら散策できます。",
+        highlight: "滝を巡る散策コース、渓谷の涼しさ、季節ごとの自然の変化が見どころです。",
+        recommend: "自然が好きな人、写真を撮りたい人、ゆっくり歩きながらリフレッシュしたい人におすすめです。"
+      },
+      {
+        id: "izumo",
+        name: "出雲大社",
+        category: "歴史・神社",
+        lat: 35.402079056480936,
+        lng: 132.68538346578688,
+        image: "./images/izumo.jpg",
+        link: "https://izumooyashiro.or.jp/",
+        shortText: "縁結びで知られる島根県の有名な神社です。",
+        overview: "出雲大社は、島根県出雲市にある歴史ある神社です。縁結びの神様として知られ、多くの観光客が訪れる島根県を代表する観光名所です。",
+        highlight: "大きなしめ縄、神楽殿、落ち着いた参道、歴史を感じる境内が見どころです。",
+        recommend: "島根県の観光をするなら外せないスポットです。歴史や神話に興味がある人にもおすすめです。"
+      },
+      {
+        id: "kapumen",
+        name: "カップ麺自販機コーナー",
+        category: "レトロ・珍スポット",
+        lat: 34.966540846908885,
+        lng: 132.4451954635681,
+        image: "./images/kapumen.jpg",
+        link: "https://jihanki.michikusa.jp/chugoku/kawamoto/",
+        shortText: "昔ながらの雰囲気を楽しめるレトロスポットです。",
+        overview: "カップ麺自販機コーナーは、昔ながらの自販機文化を感じられるユニークな場所です。観光名所とは少し違った、レトロで個性的な魅力があります。",
+        highlight: "昔の雰囲気を残した自販機、レトロな空間、珍しさのある体験が見どころです。",
+        recommend: "普通の観光地だけでなく、少し変わった場所を巡りたい人におすすめです。写真や話題作りにも向いています。"
+      }
+    ];
+
+    window.initMap = async function() {
+      const { Map } = await google.maps.importLibrary("maps");
+      const { AdvancedMarkerElement } = await google.maps.importLibrary("marker");
+
+      map = new Map(document.getElementById("map"), {
+        center: defaultCenter,
+        zoom: 7,
+        mapId: "DEMO_MAP_ID",
+        tilt: 0,
+        heading: 0,
+        mapTypeControl: false,
+        streetViewControl: false,
+        fullscreenControl: true
+      });
+
+      createSpotList();
+      createMarkers(AdvancedMarkerElement);
+
+      infoDialog = $("#spotDialog").dialog({
+        autoOpen: false,
+        width: 430,
+        modal: false,
+        show: {
+          effect: "fade",
+          duration: 180
+        },
+        hide: {
+          effect: "fade",
+          duration: 180
+        }
+      });
+    };
+
+    function createSpotList() {
+      const spotList = document.getElementById("spotList");
+      spotList.innerHTML = "";
+
+      locations.forEach(function(loc) {
+        const card = document.createElement("div");
+        card.className = "spot-card";
+        card.onclick = function() {
+          focusSpot(loc.id);
+        };
+
+        card.innerHTML = `
+          <img src="${loc.image}" alt="${loc.name}">
+          <div>
+            <h2>${loc.name}</h2>
+            <p>${loc.shortText}</p>
+            <span class="category-label">${loc.category}</span>
+          </div>
+        `;
+
+        spotList.appendChild(card);
+      });
+    }
+
+    function createMarkers(AdvancedMarkerElement) {
+      locations.forEach(function(loc) {
+        const markerContent = createThreePinMarker(loc.id);
+
+        const marker = new AdvancedMarkerElement({
+          map: map,
+          position: {
+            lat: loc.lat,
+            lng: loc.lng
+          },
+          title: loc.name,
+          content: markerContent
+        });
+
+        marker.addListener("click", function() {
+          focusSpot(loc.id);
+        });
+
+        markers.push(marker);
+      });
+    }
+
+
+
+    function focusSpot(id) {
+      const loc = locations.find(function(item) {
+        return item.id === id;
+      });
+
+      if (!loc) {
+        return;
+      }
+
+      map.panTo({
+        lat: loc.lat,
+        lng: loc.lng
+      });
+
+      map.setZoom(14);
+      map.setTilt(0);
+
+      showSpotDialog(loc);
+    }
+
+    function showSpotDialog(loc) {
+      const dialog = document.getElementById("spotDialog");
+
+      dialog.innerHTML = `
+        <div class="dialog-content">
+          <img class="dialog-main-img" src="${loc.image}" alt="${loc.name}">
+
+          <div class="dialog-section">
+            <h3>概要</h3>
+            <p>${loc.overview}</p>
+          </div>
+
+          <div class="dialog-section">
+            <h3>見どころ</h3>
+            <p>${loc.highlight}</p>
+          </div>
+
+          <div class="dialog-section">
+            <h3>おすすめポイント</h3>
+            <p>${loc.recommend}</p>
+          </div>
+
+          <div class="dialog-buttons">
+            <button class="official-btn" onclick="openOfficialSite('${loc.link}')">
+              公式サイト
+            </button>
+          </div>
+        </div>
+      `;
+
+      $("#spotDialog").dialog("option", "title", loc.name);
+      $("#spotDialog").dialog("open");
+    }
+
+function resetMap() {
+  if (!map) {
+    alert("地図の読み込みが完了していません。少し待ってから操作してください。");
+    return;
+  }
+
+  map.panTo(defaultCenter);
+  map.setZoom(7);
+
+  if (typeof map.setTilt === "function") {
+    map.setTilt(0);
+  }
+
+  $("#spotDialog").dialog("close");
+}
+
+    function openOfficialSite(url) {
+      window.open(url, "_blank");
+    }
+
+  </script>
+    <script async src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCAKLjisxFelKwIl1_G6MiEO9-ya7Twr5s&callback=initMap&libraries=maps,marker&v=beta"></script>
+
+</body>
+</html>

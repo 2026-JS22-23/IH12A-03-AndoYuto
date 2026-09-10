@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Simple Marker</title>
+    <!-- The callback parameter is required, so we use console.debug as a noop -->
+    <script async src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCAKLjisxFelKwIl1_G6MiEO9-ya7Twr5s&callback=console.debug&libraries=maps,marker&v=beta">
+    </script>
+    <style>
+      /* Always set the map height explicitly to define the size of the div
+       * element that contains the map. */
+      #map {
+        height: 100%;
+      }
+
+      /* Optional: Makes the sample page fill the window. */
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+    </style>
+  </head>
+    <body>
+    <div id="map"></div>
+    <script>
+      function initMap() {
+        // マップ
+        const map = new google.maps.Map(document.getElementById("map"), {
+          zoom: 18,
+          center: { lat: 35.16813518311986, lng: 136.88568875773115 },
+          zoomControl: true,
+          mapTypeControl: true,
+          streetViewControl: false
+        });
+
+        // マーカー
+        const marker = new google.maps.Marker({
+          position: { lat: 35.16813518311986, lng: 136.88568875773115 },
+          map: map,
+          title: "HALなごやだよ"
+        });
+
+        // 情報ウィンドウ（クリックで開く）
+        const infoWindow = new google.maps.InfoWindow({
+          content: "<h1>HALなごや</h1><p>ここはHALなごやです。</p>"
+        });
+        // マーカークリック時に情報ウィンドウを開く
+        marker.addListener("click", () => {
+          infoWindow.open(map, marker);
+        });
+        // マップクリック時に情報ウィンドウを閉じる
+        map.addListener("click", () => {
+          infoWindow.close();
+        });
+
+      }
+
+      // マップの初期化を待つ
+      window.initMap = initMap;
+      // マップの初期化が完了したら、マップを表示する
+      window.addEventListener("load", () => {
+        initMap();
+      });
+    </script>
+  </body>
+</html>
+</html>
+ 
